@@ -5,6 +5,56 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Operational Cost Summary — January 2026</title>
 <style>
+  #pw-gate {
+    position: fixed; inset: 0; background: #0f172a;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9999;
+  }
+  #pw-box {
+    background: #1e293b; border-radius: 14px; padding: 36px 32px;
+    width: 320px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  #pw-box h2 { color: #f1f5f9; font-size: 16px; font-weight: 700; text-align: center; }
+  #pw-box p { color: #64748b; font-size: 12px; text-align: center; }
+  #pw-input {
+    width: 100%; padding: 10px 14px; border-radius: 8px;
+    border: 2px solid #334155; background: #0f172a; color: #f1f5f9;
+    font-size: 15px; outline: none; font-family: system-ui, sans-serif;
+    letter-spacing: 2px;
+  }
+  #pw-input:focus { border-color: #3b82f6; }
+  #pw-btn {
+    width: 100%; padding: 10px; border-radius: 8px; border: none;
+    background: #3b82f6; color: #fff; font-size: 14px; font-weight: 600;
+    cursor: pointer;
+  }
+  #pw-btn:hover { background: #2563eb; }
+  #pw-error { color: #f87171; font-size: 12px; text-align: center; display: none; }
+</style>
+<script>
+  (function() {
+    if (sessionStorage.getItem('auth') === '1') return;
+    document.addEventListener('DOMContentLoaded', function() {
+      var gate = document.getElementById('pw-gate');
+      var input = document.getElementById('pw-input');
+      var error = document.getElementById('pw-error');
+      function attempt() {
+        if (input.value === 'bpfinance01') {
+          sessionStorage.setItem('auth', '1');
+          gate.remove();
+        } else {
+          error.style.display = 'block';
+          input.value = '';
+          input.focus();
+        }
+      }
+      document.getElementById('pw-btn').addEventListener('click', attempt);
+      input.addEventListener('keydown', function(e) { if (e.key === 'Enter') attempt(); });
+    });
+  })();
+</script>
+<style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #f1f5f9; min-height: 100vh; padding: 24px; }
   .container { max-width: 680px; margin: 0 auto; }
@@ -101,6 +151,15 @@
 </style>
 </head>
 <body>
+<div id="pw-gate">
+  <div id="pw-box">
+    <h2>🔒 Backpack Finance</h2>
+    <p>This page is protected. Enter the password to continue.</p>
+    <input id="pw-input" type="password" placeholder="Password" autofocus />
+    <div id="pw-error">Incorrect password. Try again.</div>
+    <button id="pw-btn">Unlock</button>
+  </div>
+</div>
 <div class="container">
 
   <!-- Title row -->
