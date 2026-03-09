@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Operational Cost Summary — January 2026</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #f1f5f9; min-height: 100vh; padding: 24px; }
+  .container { max-width: 680px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 700; color: #0f172a; }
+  .subtitle { font-size: 13px; color: #64748b; margin-top: 4px; }
+  .jpy-note { font-size: 11px; color: #b45309; background: #fef3c7; border-radius: 5px; padding: 3px 8px; display: inline-block; margin-top: 4px; }
+  .title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+
+  /* Share button */
+  .share-wrap { position: relative; flex-shrink: 0; }
+  .share-btn { display: flex; align-items: center; gap: 6px; background: #3b82f6; color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 6px rgba(59,130,246,0.3); white-space: nowrap; }
+  .share-btn:hover { background: #2563eb; }
+  .share-menu { display: none; position: absolute; right: 0; top: 110%; background: #fff; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 100; min-width: 220px; overflow: hidden; border: 1px solid #e2e8f0; }
+  .share-menu.open { display: block; }
+  .share-menu button { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: none; border-bottom: 1px solid #f1f5f9; padding: 11px 16px; font-size: 13px; color: #1e293b; cursor: pointer; text-align: left; }
+  .share-menu button:last-child { border-bottom: none; }
+  .share-menu button:hover { background: #f8fafc; }
+  .copy-feedback { position: absolute; right: 0; top: 110%; background: #16a34a; color: #fff; font-size: 11px; padding: 4px 10px; border-radius: 6px; white-space: nowrap; z-index: 200; display: none; }
+
+  /* Grand total */
+  .grand-total { background: #1e293b; border-radius: 10px; padding: 16px 22px; margin: 16px 0 12px; }
+  .grand-total-row { display: flex; justify-content: space-between; align-items: center; }
+  .grand-label { color: #94a3b8; font-weight: 600; font-size: 12px; }
+  .grand-amount { color: #fff; font-weight: 700; font-size: 24px; }
+  .entity-pills { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 6px; }
+  .entity-pill { font-size: 11px; color: #64748b; display: flex; align-items: center; gap: 4px; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+  .tab { border-radius: 7px; padding: 6px 13px; font-size: 12px; font-weight: 600; cursor: pointer; border: 2px solid; transition: background 0.15s, color 0.15s; }
+
+  /* Category rows */
+  .cat-card { background: #fff; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); margin-bottom: 8px; overflow: hidden; }
+  .cat-header { display: flex; align-items: center; padding: 13px 18px; cursor: pointer; user-select: none; background: #fff; transition: background 0.15s; }
+  .cat-header.open { background: #1e293b; }
+  .cat-arrow { font-size: 14px; margin-right: 10px; color: #64748b; }
+  .cat-header.open .cat-arrow { color: #fff; }
+  .cat-name { font-weight: 600; flex: 1; font-size: 14px; color: #0f172a; }
+  .cat-header.open .cat-name { color: #fff; }
+  .cc-badge { font-size: 10px; border-radius: 4px; padding: 2px 7px; margin-right: 10px; font-weight: 600; }
+  .cat-pct { font-size: 12px; color: #94a3b8; margin-right: 14px; }
+  .cat-total { font-weight: 700; font-size: 15px; color: #0f172a; }
+  .cat-header.open .cat-total { color: #e2e8f0; }
+
+  /* Vendor rows */
+  .cat-body { display: none; padding: 8px 0 4px; }
+  .cat-body.open { display: block; }
+  .vendor-row { display: flex; align-items: center; padding: 8px 18px; border-bottom: 1px solid #f1f5f9; }
+  .vendor-name { flex: 1; font-size: 13px; color: #374151; }
+  .vendor-note { font-size: 11px; color: #3b82f6; margin-left: 6px; cursor: pointer; position: relative; }
+  .vendor-amount { font-size: 13px; font-weight: 600; color: #1e293b; margin-right: 8px; }
+  .no-entries { padding: 10px 18px; color: #94a3b8; font-size: 13px; font-style: italic; }
+  .cat-footer { display: flex; justify-content: space-between; padding: 10px 18px; border-top: 2px solid #f1f5f9; background: #f8fafc; }
+  .cat-footer-label { font-size: 13px; font-weight: 700; color: #1e293b; }
+  .cat-footer-combined { font-size: 11px; color: #94a3b8; margin-left: 10px; }
+  .cat-footer-total { font-size: 13px; font-weight: 700; color: #1e293b; }
+
+  /* Tooltip */
+  .tooltip { display: none; position: absolute; left: 0; top: 100%; z-index: 50; background: #1e293b; color: #e2e8f0; font-size: 11px; padding: 6px 10px; border-radius: 6px; max-width: 280px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); line-height: 1.5; pointer-events: none; white-space: normal; }
+  .vendor-note-wrap { position: relative; display: inline-block; }
+  .vendor-note-wrap:hover .tooltip { display: block; }
+
+  /* Note editing */
+  .note-btn { font-size: 13px; margin-left: 6px; cursor: pointer; color: #3b82f6; border: none; background: none; padding: 0; }
+  .note-btn.empty { color: #cbd5e1; }
+  .inline-edit { border: none; background: transparent; font-family: inherit; outline: none; cursor: text; }
+  .inline-edit:hover, .inline-edit:focus { background: #f0f9ff; border-radius: 4px; outline: 1px solid #93c5fd; }
+  .vendor-edit { flex: 1; font-size: 13px; color: #374151; width: 100%; }
+  .amount-edit { font-size: 13px; font-weight: 600; color: #1e293b; text-align: right; width: 110px; }
+  .note-editor { display: flex; gap: 6px; align-items: center; padding: 4px 18px 10px 18px; background: #f8fafc; }
+  .add-row-btn { font-size: 11px; color: #64748b; background: none; border: 1px dashed #cbd5e1; border-radius: 4px; padding: 3px 10px; cursor: pointer; margin: 6px 18px; display: inline-flex; align-items: center; gap: 4px; }
+  .add-row-btn:hover { color: #3b82f6; border-color: #3b82f6; background: #f0f9ff; }
+  .new-vendor-row { display: flex; align-items: center; gap: 8px; padding: 6px 18px; background: #f0f9ff; border-top: 1px dashed #93c5fd; }
+  .new-vendor-input { flex: 1; border: 1px solid #93c5fd; border-radius: 4px; padding: 4px 8px; font-size: 13px; outline: none; font-family: system-ui, sans-serif; }
+  .new-vendor-input::placeholder { color: #94a3b8; }
+  .new-amount-input { width: 110px; border: 1px solid #93c5fd; border-radius: 4px; padding: 4px 8px; font-size: 13px; outline: none; font-family: system-ui, sans-serif; text-align: right; }
+  .new-amount-input::placeholder { color: #94a3b8; }
+  .add-confirm-btn { background: #3b82f6; color: #fff; border: none; border-radius: 4px; padding: 4px 12px; cursor: pointer; font-size: 11px; white-space: nowrap; }
+  .add-confirm-btn:hover { background: #2563eb; }
+  .add-cancel-btn { background: #e5e7eb; color: #374151; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 11px; }
+  .note-input { flex: 1; border: 1px solid #93c5fd; border-radius: 4px; padding: 4px 8px; font-size: 12px; outline: none; font-family: system-ui, sans-serif; }
+  .note-save { background: #16a34a; color: #fff; border: none; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 11px; }
+  .note-cancel { background: #e5e7eb; color: #374151; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 11px; }
+
+  .footer-hint { font-size: 11px; color: #94a3b8; margin-top: 8px; text-align: right; }
+
+  @media print {
+    .share-wrap, .tabs { display: none !important; }
+    .cat-body { display: block !important; }
+    .cat-header { background: #1e293b !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .cat-header .cat-arrow, .cat-header .cat-name, .cat-header .cat-total { color: #fff !important; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Title row -->
+  <div style="margin-bottom:20px">
+    <div class="title-row">
+      <h1>Operational Cost Summary — January 2026</h1>
+      <div class="share-wrap">
+        <button class="share-btn" onclick="toggleShareMenu(event)">↑ Share</button>
+        <div class="copy-feedback" id="copyFeedback"></div>
+        <div class="share-menu" id="shareMenu">
+          <button onclick="copyClipboard()">📋 Copy summary to clipboard</button>
+          <button onclick="saveAsFile()">💾 Save as file</button>
+          <button onclick="exportCSV()">⬇️ Export as CSV</button>
+          <button onclick="window.print()">🖨️ Print / PDF view</button>
+          <button onclick="copyURL()">🔗 Copy page URL</button>
+        </div>
+      </div>
+    </div>
+    <p class="subtitle">Click a category to expand. Hover ℹ to see notes. Click ℹ or "+ note" to edit.</p>
+    <p class="jpy-note" id="jpyNote" style="display:none">JPY converted at USD/JPY 154.22 (Jan 31, 2026 month-end)</p>
+  </div>
+
+  <!-- Grand total -->
+  <div class="grand-total">
+    <div class="grand-total-row">
+      <span class="grand-label">COMBINED TOTAL (ALL ENTITIES)</span>
+      <span class="grand-amount" id="grandTotal"></span>
+    </div>
+    <div class="entity-pills" id="entityPills"></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs" id="tabs"></div>
+
+  <!-- Categories -->
+  <div id="categories"></div>
+
+  <p class="footer-hint">Hover ℹ for notes. Click a category row to expand.</p>
+</div>
+
+<script>
+const CATEGORIES = ["Finance Expenses","General Administration","Insurance","IT & Development","Legal & Licensing","Marketing","Professional Services","Payroll & Related"];
+const COST_CENTRES = ["Trek Global","Trek Europe","Trek Latvia","Trek Japan","Trek US","Blue Coral"];
+const CC_STYLE = {
+  "Trek Global": { bg: "#3b82f6", light: "#dbeafe", text: "#1d4ed8" },
+  "Trek Europe": { bg: "#8b5cf6", light: "#ede9fe", text: "#5b21b6" },
+  "Trek Latvia": { bg: "#059669", light: "#d1fae5", text: "#065f46" },
+  "Trek Japan":  { bg: "#dc2626", light: "#fee2e2", text: "#991b1b" },
+  "Trek US":     { bg: "#d97706", light: "#fef3c7", text: "#92400e" },
+  "Blue Coral":  { bg: "#0891b2", light: "#cffafe", text: "#155e75" },
+};
+const fmt = n => "$" + Number(n).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+const J = jpy => Math.round(jpy / 154.22 * 100) / 100;
+
+/* ALLDATA_START */
+const ALL_DATA = {
+  "Trek Global": {
+    "Finance Expenses": [
+      { vendor: "Bank & Wallet transaction fees", amount: (6772.60-1979.57)+321.97+453.86+10.30, note: "Bank charges, FX conversion, merchant & wallet fees" },
+      { vendor: "Equals Money", amount: 119889.00, note: "Fiat on/off ramp fees" },
+    ],
+    "General Administration": [
+      { vendor: "Regus (Dubai rent)", amount: 9052.05, note: "Trek UAE office rent" },
+      { vendor: "UAB Origama (LT rent)", amount: 300.00, note: "Lithuanian office" },
+      { vendor: "Servcorp (AU rent)", amount: 600.00, note: "AU office rent" },
+      { vendor: "Public Storage", amount: 354.00, note: "Sebastian's storage in SF" },
+      { vendor: "Office Supplies / Other Admin", amount: 514.73, note: "" },
+      { vendor: "Postage & Courier", amount: 98.75, note: "" },
+      { vendor: "Travel (Flights, Hotels, Meals)", amount: 8878.86-3712.86, note: "Team travel, cleaning and misc benefits" },
+      { vendor: "Depreciation & Amortisation", amount: 4206.14-746.35, note: "" },
+      { vendor: "Turkey", amount: 2000.00, note: "" },
+    ],
+    "Insurance": [
+      { vendor: "Orient Takaful", amount: 5750.00, note: "Director & officer insurance" },
+      { vendor: "LIVA Insurance", amount: 1437.50, note: "PI Insurance" },
+    ],
+    "IT & Development": [
+      { vendor: "Amazon Web Services (AWS)", amount: 212241.58, note: "Server expenses" },
+      { vendor: "ClickHouse Cloud", amount: 120718.14, note: "Data loading, storage" },
+      { vendor: "Aristaflow", amount: 35737.78, note: "KYC services" },
+      { vendor: "SumSub", amount: 15880.82, note: "KYC & travel rule" },
+      { vendor: "Anthropic (Claude / AI)", amount: 4529.71, note: "AI tool" },
+      { vendor: "Cordial Systems", amount: 10516.00, note: "Treasury system" },
+      { vendor: "Axiom", amount: 6129.58, note: "Data loading, storage" },
+      { vendor: "Oracle NetSuite", amount: 7052.82, note: "Accounting & ERP software" },
+      { vendor: "FrontApp", amount: 3976.90, note: "Front email" },
+      { vendor: "Iterable", amount: 2937.28, note: "Growth & marketing platform" },
+      { vendor: "Twilio", amount: 2461.64, note: "Email infrastructure platform" },
+      { vendor: "Redis", amount: 6382.19, note: "Real time data platform" },
+      { vendor: "Slack", amount: 1906.10, note: "Team communication" },
+      { vendor: "PagerDuty", amount: 1225.17, note: "SaaS incident management" },
+      { vendor: "Amberdata", amount: 2666.61, note: "Market data tool" },
+      { vendor: "Hacken Proof (Bug Bounty)", amount: 5483.34, note: "Bug bounty program and POR" },
+      { vendor: "GitHub", amount: 1810.44, note: "Dev management tool" },
+      { vendor: "Teraswitch", amount: 2350.22, note: "Data centre" },
+      { vendor: "GitBook", amount: 1832.90, note: "Dev management tool" },
+      { vendor: "Depot", amount: 3061.21, note: "Build-acceleration for devs" },
+      { vendor: "Airtable", amount: 768.00, note: "Cloud based platform project management" },
+      { vendor: "Webflow", amount: 839.03, note: "Website builder" },
+      { vendor: "OpenAI", amount: 1197.00, note: "AI tool" },
+      { vendor: "Quicknode", amount: 1546.17, note: "RPC Infrastructure" },
+      { vendor: "Tailscale", amount: 573.05, note: "VPN Service" },
+      { vendor: "Sentry", amount: 1868.00, note: "Error monitoring for devs" },
+      { vendor: "Cursor", amount: 481.51, note: "AI code editor" },
+      { vendor: "Google Workspace", amount: 2444.22, note: "Google accounts" },
+      { vendor: "Thoropass", amount: 1280.83, note: "SOC audit" },
+      { vendor: "Adobe", amount: 273.03, note: "PDF suites" },
+      { vendor: "Better Stack", amount: 660.72, note: "Exchange monitoring" },
+      { vendor: "Vercel", amount: 251.81, note: "Website builder" },
+      { vendor: "JetBrains", amount: 412.23, note: "Database tool" },
+      { vendor: "PostHog", amount: 250.00, note: "Product analytics" },
+      { vendor: "Carta", amount: 1085.29, note: "Equity management system" },
+      { vendor: "OtterSec (Blockchain Audit)", amount: 18000.00, note: "Onchain audit" },
+      { vendor: "DAAG Tech", amount: 23099.98, note: "Regulatory reporting service for BP EU" },
+      { vendor: "Alexander Rozenberg", amount: 10950.00, note: "Risk management" },
+      { vendor: "Solidus Labs", amount: 2763.00, note: "" },
+      { vendor: "Chainalysis", amount: 5500.00, note: "" },
+      { vendor: "Other IT (small vendors)", amount: 4191.57-40.96, note: "1Password, Blockvision, DocuSign, Dropbox, GoDaddy, Kamatera, Latitude.sh, Miro, Pluno.ai, uConnectedAU, Hava.io, Commitgo, Typeform, Greptile, Kiara Inc" },
+    ],
+    "Legal & Licensing": [
+      { vendor: "LawConsult (Marcel)", amount: 22712.76, note: "" },
+      { vendor: "Fenwick & West LLP", amount: 4996.53, note: "General legal consultation" },
+      { vendor: "Gowling WLG", amount: 1477.59, note: "UAE local legal service" },
+      { vendor: "Zitadelle", amount: 106.00, note: "Company registration related" },
+      { vendor: "Dubai World Trade Centre", amount: 2194.69, note: "" },
+      { vendor: "Compliance Exchange Group", amount: 23500.00, note: "" },
+      { vendor: "Archax Ltd", amount: 3929.74, note: "For UK service" },
+      { vendor: "VARA Licensing (Prepaid)", amount: 4538.69, note: "" },
+      { vendor: "DECA Licensing (Prepaid)", amount: 97.22, note: "" },
+      { vendor: "Onchain", amount: 12000.00, note: "" },
+      { vendor: "Other firms", amount: 2000.00, note: "" },
+      { vendor: "Dentons", amount: 5000.00, note: "" },
+    ],
+    "Marketing": [
+      { vendor: "Captain Rebates", amount: 161433.00, note: "" },
+      { vendor: "Broker Rebates", amount: 17095.60, note: "" },
+      { vendor: "KOL / Business Development", amount: 47038.00, note: "" },
+      { vendor: "Marketing Events", amount: 4911.14, note: "" },
+      { vendor: "Hope Lui", amount: 9600.00, note: "SEO services" },
+      { vendor: "CoinMarketCap (Prepaid)", amount: 7083.33, note: "Coin Market Cap one year membership" },
+    ],
+    "Professional Services": [
+      { vendor: "SA Consultants LLC", amount: 9000.00, note: "UAE audit and tax services" },
+      { vendor: "Other accounting & tax (WTS mainly)", amount: 8000.00, note: "" },
+    ],
+    "Payroll & Related": [
+      { vendor: "Salaries & Wages", amount: 473425.61-106666.64+4000, note: "" },
+      { vendor: "Performance Bonus", amount: 58282.00, note: "" },
+      { vendor: "Employee Pension & Health Insurance", amount: 10423.37-5774.37, note: "" },
+      { vendor: "Other Employee Benefits", amount: 12583.34, note: "" },
+      { vendor: "Payroll Tax (BVI)", amount: 10535.21-10241.74, note: "" },
+      { vendor: "Stock-Based Compensation", amount: 0, note: "TBA", tba: true },
+    ],
+  },
+  "Trek Europe": {
+    "Finance Expenses": [{ vendor: "Bank & Wallet transaction fees", amount: 5696.04, note: "" }],
+    "General Administration": [
+      { vendor: "Cablenet", amount: Math.round(50.79 * 1.18), note: "Office internet" },
+      { vendor: "CheapBasket", amount: Math.round(84.78 * 1.18), note: "Groceries & supplies" },
+      { vendor: "Financial Ombudsman", amount: Math.round(414.80 * 1.18), note: "" },
+      { vendor: "Others", amount: Math.round(4512.14 - Math.round(50.79*1.18) - Math.round(84.78*1.18) - Math.round(414.80*1.18)), note: "Fysair rent/cleaning, EAC, Henry Raatz, Depreciation" },
+    ],
+    "Insurance": [],
+    "IT & Development": [
+      { vendor: "Point Nine", amount: Math.round(1725.50 * 1.18), note: "Regulatory trade reporting" },
+      { vendor: "Amazon AWS", amount: Math.round(2392.25 * 1.18), note: "AWS Invoice January 2026" },
+      { vendor: "Sumsub", amount: Math.round(912.25 * 1.18), note: "AML onboarding checks" },
+      { vendor: "BCS", amount: Math.round(3000 * 1.18), note: "IT Support Services — EUR 3,000/month" },
+      { vendor: "BCS — Microsoft Business E3", amount: Math.round(1600 * 1.18), note: "Microsoft Business E3 license — EUR 1,600/month" },
+      { vendor: "Konkrit Solutions", amount: Math.round(1388 * 1.18), note: "IT DoRA consulting — EUR 14,000/year" },
+      { vendor: "Others", amount: 5428 - Math.round(1725.50*1.18) - Math.round(2392.25*1.18), note: "Business Consulting Support IT maintenance + other" },
+    ],
+    "Legal & Licensing": [{ vendor: "Licensing Expenses", amount: 283.20, note: "Point 9, Speedy Corporate, Raatz Consulting, Michael Kyprianou LLC" }],
+    "Marketing": [],
+    "Professional Services": [
+      { vendor: "Speedy Corporate", amount: Math.round(1190 * 1.18), note: "Compliance/AML Consulting — EUR 12,000/year" },
+      { vendor: "Raatz Consulting", amount: Math.round(1000 * 1.18), note: "GDPR and DPO officer — EUR 1,000/month (no VAT)" },
+      { vendor: "Michael Kyprianou LLC", amount: Math.round(198 * 1.18), note: "Registered Legal Advisor — EUR 2,000/year" },
+      { vendor: "Konkrit Accounting", amount: Math.round(2618 * 1.18), note: "Accounting / Payroll — EUR 2,200/month" },
+      { vendor: "AMF Services", amount: Math.round(1190 * 1.18), note: "Internal audit — EUR 12,000/year" },
+      { vendor: "K. Treppides", amount: Math.round(79 * 1.18), note: "Capital adequacy regulatory submission — EUR 200/quarter" },
+      { vendor: "Others", amount: Math.round(25221.89 - Math.round(1190*1.18) - Math.round(1000*1.18) - Math.round(198*1.18) - Math.round(2618*1.18) - Math.round(1190*1.18) - Math.round(79*1.18)) - 16146, note: "GAC Auditors, Refinitiv, other professional fees" },
+    ],
+    "Payroll & Related": [
+      { vendor: "Salaries & Wages", amount: Math.round(58750 * 1.18), note: "" },
+      { vendor: "Social Insurance & Tax", amount: Math.round(7708 * 1.18), note: "" },
+      { vendor: "Others", amount: Math.round(224765.21 - Math.round(92917.34*1.18) - Math.round(58333.32*1.18) - Math.round(35075.54*1.18)), note: "Contractors and other payroll" },
+    ],
+  },
+  "Trek Latvia": {
+    "Finance Expenses": [], "General Administration": [], "Insurance": [],
+    "IT & Development": [],
+    "Legal & Licensing": [{ vendor: "Ecovis / New Firm", amount: 10000.00, note: "" }],
+    "Marketing": [],
+    "Professional Services": [],
+    "Payroll & Related": [{ vendor: "Payroll", amount: 51987.80, note: "" }],
+  },
+  "Trek Japan": {
+    "Finance Expenses": [{ vendor: "Bank & Wallet transaction fees", amount: J(27*143), note: "Bank charges" }],
+    "General Administration": [
+      { vendor: "SoftBank Mobile Dec bills (x2)", amount: J(6529+11998), note: "" },
+      { vendor: "SMBC SPC Membership", amount: J(110000), note: "" },
+      { vendor: "Central System Visa Debit", amount: J(3300), note: "" },
+      { vendor: "OPTiM Store Business", amount: J(10978), note: "AI electronic document management system" },
+      { vendor: "JP Morgan Double Double JP", amount: J(22000), note: "" },
+    ],
+    "Insurance": [],
+    "IT & Development": [
+      { vendor: "Mitsuisumitomo Safe", amount: J(3960), note: "" },
+    ],
+    "Legal & Licensing": [
+      { vendor: "Anderson Mori & Tomotsune", amount: J(1093393), note: "Legal" },
+    ],
+    "Marketing": [],
+    "Professional Services": [
+      { vendor: "Minato Accounting", amount: J(85215) + 1000, note: "Remuneration for accounting, payroll etc" },
+      { vendor: "Kotobuki Accounting", amount: J(110000), note: "Remuneration for part-time head of internal audit" },
+      { vendor: "Eiwa Audit", amount: J(880000), note: "Accounting audit" },
+    ],
+    "Payroll & Related": [
+      { vendor: "Salaries & Wages", amount: J(1650000+643390+131117+765944+117305+492251+141700+1586515+523347+521218+557283+483331+595101+344408+1311517+691580+65559+443106+142807+1630875+17*143) + J(1699500), note: "Combined payroll incl. Citibank Hays Japan" },
+      { vendor: "PE Local Tax Shinjuku Joint Agency", amount: J(475700), note: "Tax" },
+      { vendor: "PE Shinjuku Tax Office", amount: J(1730241), note: "Tax" },
+      { vendor: "PE Social Insurance Premiums", amount: J(2483436), note: "Social insurance" },
+      { vendor: "Issuance Fees x2", amount: J(2*880), note: "Payroll related" },
+    ],
+  },
+  "Trek US": {
+    "Finance Expenses": [{ vendor: "Bank & Wallet transaction fees", amount: 1979.57, note: "Bank charges" }],
+    "General Administration": [
+      { vendor: "Office Rent (Mercury)", amount: 2172.50, note: "" },
+      { vendor: "Travel (Flights & Accommodation)", amount: 1000.00, note: "Team travel" },
+      { vendor: "Depreciation & Amortisation", amount: 746.35, note: "" },
+    ],
+    "Insurance": [{ vendor: "Surety Bond", amount: 2761.93, note: "" }],
+    "IT & Development": [{ vendor: "Software Expenses", amount: 40.96, note: "" }],
+    "Legal & Licensing": [
+      { vendor: "Whiteman Osterman & Hanna LLP", amount: 2006.00 + 4465.59, note: "US immigration counsel & legal" },
+      { vendor: "Mofo and RPM", amount: 100000.00, note: "" },
+      { vendor: "Ankura", amount: 2000.00, note: "" },
+    ],
+    "Marketing": [],
+    "Professional Services": [
+      { vendor: "Audit - SEK", amount: 13000.00, note: "US audit" },
+      { vendor: "Taxation & Other", amount: 54.96, note: "" },
+    ],
+    "Payroll & Related": [
+      { vendor: "Salaries & Wages", amount: 106666.64, note: "" },
+      { vendor: "Employee Pension & Health Insurance", amount: 5774.37 + 60.78, note: "" },
+      { vendor: "Payroll Processing (Gusto)", amount: 300.00, note: "Payroll software" },
+      { vendor: "Payroll Tax - US", amount: 10241.74, note: "" },
+    ],
+  },
+  "Blue Coral": {
+    "Finance Expenses": [
+      { vendor: "Bank & Wallet transaction fees", amount: 1269.65 + 22.94, note: "Bank charges & wallet fees" },
+    ],
+    "General Administration": [
+      { vendor: "Amazon", amount: 152.64, note: "Office & General" },
+      { vendor: "Dell", amount: 3646.34, note: "Office & General" },
+      { vendor: "Ledger", amount: 182.97, note: "Office & General" },
+      { vendor: "PostScan Mail", amount: 10.90, note: "Office & General" },
+      { vendor: "DHL", amount: 1.67, note: "Shipping & Fulfillment" },
+      { vendor: "Shipsaving", amount: 333.33, note: "Shipping & Fulfillment" },
+      { vendor: "Travel", amount: 500.96 + 1401.47 + 293.31 + 104.15, note: "Expedia, Hilton, Uber Eats, Uber" },
+      { vendor: "Rent", amount: 19452.73, note: "3,000,000 JPY at 154.22" },
+      { vendor: "Merch Expense", amount: 4000.00, note: "" },
+      { vendor: "Others", amount: 28509.71 - 19452.73 - 4000.00, note: "Unallocated G&A" },
+    ],
+    "Insurance": [],
+    "IT & Development": [
+      { vendor: "Helius", amount: 5340.00, note: "Software & Infrastructure" },
+      { vendor: "Linear App", amount: 2367.66, note: "Amortization of prepaid - January 2026" },
+      { vendor: "Carta", amount: 1309.68, note: "Amortization of prepaid - January 2026" },
+      { vendor: "Kaito.ai", amount: 1099.00, note: "" },
+      { vendor: "Google", amount: 1052.89, note: "Google Workspace + Google One" },
+      { vendor: "Figma", amount: 520.28, note: "Design & Creative" },
+      { vendor: "Armani Ferrante", amount: 512.88, note: "Employee reimbursement" },
+      { vendor: "Quicknode", amount: 348.00, note: "Software & Infrastructure" },
+      { vendor: "Sentry", amount: 320.00, note: "Software & Infrastructure" },
+      { vendor: "Moralis.io", amount: 269.76, note: "Software & Infrastructure" },
+      { vendor: "Depot", amount: 200.00, note: "Software & Infrastructure" },
+      { vendor: "Pubkey", amount: 199.00, note: "" },
+      { vendor: "Anthropic", amount: 124.00, note: "AI subscription reimbursement" },
+      { vendor: "Alchemy", amount: 121.75, note: "Software & Infrastructure" },
+      { vendor: "Notion", amount: 103.56, note: "" },
+      { vendor: "Zerion", amount: 100.00, note: "API usage" },
+      { vendor: "Qase.io", amount: 90.00, note: "Software & Infrastructure" },
+      { vendor: "Gitbook", amount: 72.00, note: "Software & Infrastructure" },
+      { vendor: "Mullvad VPN", amount: 70.38, note: "Employee reimbursement" },
+      { vendor: "Slack", amount: 52.49, note: "Software & Infrastructure" },
+      { vendor: "Canva", amount: 30.00, note: "Design & Creative" },
+      { vendor: "Runway", amount: 15.00, note: "Software & Infrastructure" },
+      { vendor: "Proton", amount: 9.99, note: "Software & Infrastructure" },
+      { vendor: "Airtable", amount: 417.80, note: "Software & Infrastructure" },
+      { vendor: "Bitdrift", amount: 1612.00, note: "Software & Infrastructure" },
+      { vendor: "Datadog", amount: 401.90, note: "Software & Infrastructure" },
+      { vendor: "DigitalOcean", amount: 18.90, note: "Software & Infrastructure" },
+      { vendor: "FeedsApp", amount: 19.99, note: "Software & Infrastructure" },
+      { vendor: "Pro Fuse", amount: 686.22, note: "Software & Infrastructure" },
+      { vendor: "Shopify", amount: 230.74, note: "Software & Infrastructure" },
+      { vendor: "Vercel", amount: 88.33, note: "Software & Infrastructure" },
+      { vendor: "OtterSec", amount: 10000.00, note: "Blockchain audit" },
+      { vendor: "Cloudflare", amount: 6358.00, note: "" },
+      { vendor: "portal.jup.ag", amount: 207.30, note: "Server hosting" },
+      { vendor: "Others", amount: 2940.12, note: "Unallocated IT costs" },
+    ],
+    "Legal & Licensing": [
+      { vendor: "Law firms", amount: 1000.00, note: "" },
+    ],
+    "Marketing": [
+      { vendor: "650 Industries", amount: 880.13, note: "Marketing & Advertising" },
+      { vendor: "Birdeye", amount: 1356.12, note: "Marketing & Advertising" },
+      { vendor: "LinkedIn", amount: 587.74, note: "Marketing & Advertising" },
+      { vendor: "Semrush", amount: 820.95, note: "Marketing & Advertising" },
+      { vendor: "Twitter", amount: 1503.58, note: "Marketing & Advertising" },
+      { vendor: "BD in China", amount: 10000.00, note: "" },
+      { vendor: "Other events", amount: 5000.00, note: "" },
+      { vendor: "Buffer", amount: 5000.00, note: "" },
+    ],
+    "Professional Services": [
+      { vendor: "Integral", amount: 750.00, note: "Finance & Legal" },
+      { vendor: "Robert Lee & Associates, LLP", amount: 662.33, note: "Finance & Legal" },
+      { vendor: "Tax1099", amount: 76.77, note: "Finance & Legal" },
+      { vendor: "Wolf & Company, P.C.", amount: 8333.33, note: "Finance & Legal" },
+      { vendor: "Recruiters", amount: 2000.00, note: "" },
+      { vendor: "Others", amount: 1748.11, note: "Unallocated professional services" },
+    ],
+    "Payroll & Related": [
+      { vendor: "Salaries & Wages", amount: 74766.07 + 394051.58 + 4000, note: "Incl. contractors" },
+      { vendor: "Payroll Taxes", amount: 9818.85, note: "" },
+      { vendor: "Gusto Payroll", amount: 1138.39, note: "Payroll processing" },
+      { vendor: "Employee Insurance", amount: 499.09 + 41.20 + 485.25, note: "United Healthcare, NEXT Insurance, The Guardian Insurance" },
+      { vendor: "PEO & Payroll Service / HR Fees", amount: 162.00, note: "" },
+      { vendor: "Stock-Based Compensation", amount: 7448.61, note: "" },
+    ],
+  },
+};
+
+/* ALLDATA_END */
+let activeCc = "Trek Global";
+let showCategorySummary = true;
+let showVendorSummary = false;
+
+function catTotal(cc, cat) {
+  return (ALL_DATA[cc][cat] || []).reduce((s, v) => s + (v.tba ? 0 : v.amount), 0);
+}
+function grandTotal(cc) {
+  return CATEGORIES.reduce((s, c) => s + catTotal(cc, c), 0);
+}
+function combinedTotal(cat) {
+  return COST_CENTRES.reduce((s, cc) => s + catTotal(cc, cat), 0);
+}
+function combinedGrand() { return COST_CENTRES.reduce((s, cc) => s + grandTotal(cc), 0); }
+
+function render() {
+  // Grand total
+  document.getElementById("grandTotal").textContent = fmt(combinedGrand());
+  const pills = document.getElementById("entityPills");
+  pills.innerHTML = COST_CENTRES.map(cc =>
+    `<span class="entity-pill"><span class="dot" style="background:${CC_STYLE[cc].bg}"></span>${cc}: ${fmt(grandTotal(cc))}</span>`
+  ).join("");
+
+  // JPY note
+  document.getElementById("jpyNote").style.display = (!showCategorySummary && activeCc === "Trek Japan") ? "inline-block" : "none";
+
+  // Tabs
+  const tabs = document.getElementById("tabs");
+  tabs.innerHTML = `<button class="tab" onclick="switchCategorySummary()"
+    style="background:${showCategorySummary ? '#0f172a' : '#fff'};color:${showCategorySummary ? '#fff' : '#0f172a'};border-color:#0f172a;margin-right:4px">
+    📊 By Category
+  </button><button class="tab" onclick="switchVendorSummary()"
+    style="background:${showVendorSummary ? '#0f172a' : '#fff'};color:${showVendorSummary ? '#fff' : '#0f172a'};border-color:#0f172a;margin-right:10px">
+    🔤 By Vendor
+  </button>` + COST_CENTRES.map(cc => {
+    const s = CC_STYLE[cc];
+    const active = !showCategorySummary && !showVendorSummary && cc === activeCc;
+    return `<button class="tab" onclick="switchCC('${cc}')"
+      style="background:${active ? s.bg : '#fff'};color:${active ? '#fff' : s.text};border-color:${s.bg}">
+      ${cc} <span style="opacity:0.85;font-size:11px">${fmt(grandTotal(cc))}</span>
+    </button>`;
+  }).join("");
+  // (tabs already rendered above)
+
+  const cats = document.getElementById("categories");
+
+  // Vendor Summary view
+  if (showVendorSummary) {
+    const EXCL = ['salaries & wages','performance bonus','payroll','net salaries'];
+    const allVendors = [];
+    COST_CENTRES.forEach(cc => {
+      CATEGORIES.forEach(cat => {
+        (ALL_DATA[cc][cat] || []).forEach(v => {
+          const nameLower = v.vendor.toLowerCase();
+          const excluded = EXCL.some(e => nameLower.includes(e));
+          if (!v.tba && !excluded) allVendors.push({ vendor: v.vendor, amount: v.amount, cat, cc, note: v.note || '' });
+        });
+      });
+    });
+    allVendors.sort((a, b) => b.amount - a.amount);
+    const filteredTotal = allVendors.reduce((s, v) => s + v.amount, 0);
+    cats.innerHTML = `
+      <div style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;margin-bottom:12px">
+        <div style="display:grid;grid-template-columns:1fr 160px 130px 90px;padding:10px 16px;background:#f8fafc;border-bottom:2px solid #e2e8f0;font-size:11px;font-weight:700;color:#64748b;letter-spacing:.04em">
+          <span>Vendor / Line Item (Excl. salaries)</span><span>Entity</span><span>Category</span><span style="text-align:right">Amount</span>
+        </div>
+        ${allVendors.map((v, i) => `
+          <div style="display:grid;grid-template-columns:1fr 160px 130px 90px;padding:9px 16px;border-bottom:1px solid #f1f5f9;background:${i%2===0?'#fff':'#fafafa'};align-items:center">
+            <span style="font-size:13px;color:#1e293b">${v.vendor}${v.note ? `<span style="font-size:12px;color:#3b82f6;margin-left:6px" title="${v.note}">ℹ</span>` : ''}</span>
+            <span style="font-size:11px;color:#64748b">${v.cc}</span>
+            <span style="font-size:11px;color:#64748b">${v.cat}</span>
+            <span style="font-size:13px;font-weight:600;color:#1e293b;text-align:right">${fmt(v.amount)}</span>
+          </div>`).join('')}
+        <div style="display:grid;grid-template-columns:1fr 160px 130px 90px;padding:11px 16px;background:#0f172a">
+          <span style="font-size:13px;font-weight:700;color:#fff;grid-column:1/4">Total (excl. salaries)</span>
+          <span style="font-size:13px;font-weight:700;color:#fff;text-align:right">${fmt(filteredTotal)}</span>
+        </div>
+      </div>`;
+    return;
+  }
+
+  // Category Summary view
+  if (showCategorySummary) {
+    cats.innerHTML = CATEGORIES.map(cat => {
+      const combined = combinedTotal(cat);
+      const pct = combinedGrand() > 0 ? (combined / combinedGrand() * 100).toFixed(1) : "0.0";
+      const isOpen = expandedCatSummary === cat;
+      const entityRows = COST_CENTRES.map(cc => {
+        const items = [...(ALL_DATA[cc][cat] || [])].sort((a,b) => (b.tba?0:b.amount) - (a.tba?0:a.amount));
+        if (!items.length) return "";
+        const s = CC_STYLE[cc];
+        const ccTotal = catTotal(cc, cat);
+        return `
+          <div style="padding:6px 18px 2px;background:#f8fafc;border-bottom:1px solid #e2e8f0">
+            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${s.bg};margin-right:6px"></span>
+            <span style="font-size:11px;font-weight:700;color:${s.text};text-transform:uppercase;letter-spacing:0.05em">${cc}</span>
+            <span style="font-size:11px;color:#94a3b8;margin-left:8px">${fmt(ccTotal)}</span>
+          </div>
+          ${items.map(v => `
+            <div style="display:flex;align-items:center;padding:6px 18px 6px 32px;border-bottom:1px solid #f1f5f9">
+              <span style="flex:1;font-size:13px;color:#374151">${v.vendor}${v.note ? `<span style="font-size:13px;color:#3b82f6;margin-left:6px" title="${v.note}">ℹ</span>` : ''}</span>
+              <span style="font-size:13px;font-weight:600;color:#1e293b">${fmt(v.amount)}</span>
+            </div>`).join("")}`;
+      }).join("");
+      return `
+        <div class="cat-card">
+          <div class="cat-header ${isOpen ? 'open' : ''}" onclick="toggleCatSummary('${cat.replace(/'/g,"\\'")}', this)">
+            <span class="cat-arrow">${isOpen ? '▾' : '▸'}</span>
+            <span class="cat-name">${cat}</span>
+            <span class="cc-badge" style="background:${isOpen ? '#334155' : '#e2e8f0'};color:${isOpen ? '#e2e8f0' : '#475569'}">All Entities</span>
+            <span class="cat-pct">${pct}%</span>
+            <span class="cat-total">${fmt(combined)}</span>
+          </div>
+          <div class="cat-body ${isOpen ? 'open' : ''}">
+            ${entityRows || '<div class="no-entries">No entries for this category</div>'}
+            <div class="cat-footer">
+              <span class="cat-footer-label">Combined Total — All Entities</span>
+              <span class="cat-footer-total">${fmt(combined)}</span>
+            </div>
+          </div>
+        </div>`;
+    }).join("");
+    return;
+  }
+
+  // Normal entity view
+  const data = ALL_DATA[activeCc];
+  const grand = grandTotal(activeCc);
+  const s = CC_STYLE[activeCc];
+  cats.innerHTML = CATEGORIES.map(cat => {
+    const rawItems = data[cat] || [];
+    const items = rawItems.map((v,i) => ({...v, _origIdx: i})).sort((a,b) => (b.tba?0:b.amount)-(a.tba?0:a.amount));
+    const total = catTotal(activeCc, cat);
+    const pct = grand > 0 ? (total / grand * 100).toFixed(1) : "0.0";
+    const combined = combinedTotal(cat);
+    const vendorRows = items.length === 0
+      ? `<div class="no-entries">No entries yet</div>`
+      : items.map((v) => {
+          const i = v._origIdx;
+          const key = `${activeCc.replace(/\s/g,'_')}-${cat.replace(/\s/g,'_')}-${i}`;
+          const ccE = activeCc.replace(/'/g,"\\'"), catE = cat.replace(/'/g,"\\'");
+          return `
+          <div class="vendor-row" id="vrow-${key}">
+            <span class="vendor-name">
+              <input class="inline-edit vendor-edit" id="vname-${key}"
+                value="${v.vendor.replace(/"/g,'&quot;')}"
+                onblur="saveVendorName('${ccE}','${catE}',${i},this.value)"
+                onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){this.value=ALL_DATA['${ccE}']['${catE}'][${i}].vendor;this.blur();}"
+              />
+              <button class="note-btn ${v.note ? '' : 'empty'}" onclick="openNoteEditor('${ccE}','${catE}',${i},event)" title="${v.note ? 'Edit note' : 'Add note'}">${v.note ? 'ℹ' : '+ note'}</button>
+            </span>
+            <span class="vendor-amount">
+              ${v.tba
+                ? `<span style="font-size:13px;font-weight:600;color:#94a3b8;font-style:italic;margin-right:8px">TBA</span>`
+                : `<input class="inline-edit amount-edit" id="vamt-${key}"
+                value="${fmt(v.amount)}"
+                onfocus="this.value=Math.round(ALL_DATA['${ccE}']['${catE}'][${i}].amount);this.select();"
+                onblur="saveVendorAmount('${ccE}','${catE}',${i},this.value)"
+                onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){this.value=fmt(ALL_DATA['${ccE}']['${catE}'][${i}].amount);this.blur();}"
+              />`}
+            </span>
+          </div>
+          <div class="note-editor" id="neditor-${key}" style="display:none">
+            <input class="note-input" id="ninput-${key}" value="${(v.note||'').replace(/"/g,'&quot;')}" placeholder="Enter note..." />
+            <button class="note-save" onclick="saveNote('${ccE}','${catE}',${i})">Save</button>
+            <button class="note-cancel" onclick="closeNoteEditor('${ccE}','${catE}',${i})">✕</button>
+          </div>`;
+        }).join("");
+
+    return `
+      <div class="cat-card">
+        <div class="cat-header" onclick="toggleCat('${cat.replace(/'/g,"\\'")}', this)">
+          <span class="cat-arrow">▸</span>
+          <span class="cat-name">${cat}</span>
+          <span class="cc-badge" style="background:${s.light};color:${s.text}">${activeCc}</span>
+          <span class="cat-pct">${pct}%</span>
+          <span class="cat-total">${fmt(total)}</span>
+        </div>
+        <div class="cat-body">
+          ${vendorRows}
+          <div id="newrow-${activeCc.replace(/\s/g,'_')}-${cat.replace(/\s/g,'_')}" style="display:none" class="new-vendor-row">
+            <input class="new-vendor-input" id="nv-name-${activeCc.replace(/\s/g,'_')}-${cat.replace(/\s/g,'_')}" placeholder="Vendor name" />
+            <input class="new-amount-input" id="nv-amt-${activeCc.replace(/\s/g,'_')}-${cat.replace(/\s/g,'_')}" placeholder="0" type="number" min="0" />
+            <button class="add-confirm-btn" onclick="confirmAddVendor('${activeCc.replace(/'/g,"\'")}','${cat.replace(/'/g,"\'")}')">+ Add</button>
+            <button class="add-cancel-btn" onclick="cancelAddVendor('${activeCc.replace(/\s/g,'_')}-${cat.replace(/\s/g,'_')}')">✕</button>
+          </div>
+          <button class="add-row-btn" onclick="showAddVendor('${activeCc.replace(/\s/g,'_')}-${cat.replace(/\s/g,'_')}','${activeCc.replace(/'/g,"\'")}','${cat.replace(/'/g,"\'")}')">＋ Add vendor</button>
+          <div class="cat-footer">
+            <span class="cat-footer-label">Total — ${activeCc}
+              ${combined !== total ? `<span class="cat-footer-combined">Combined: ${fmt(combined)}</span>` : ""}
+            </span>
+            <span class="cat-footer-total">${fmt(total)}</span>
+          </div>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+function switchCC(cc) {
+  activeCc = cc;
+  showCategorySummary = false;
+  showVendorSummary = false;
+  expandedCatSummary = null;
+  document.querySelectorAll(".cat-body.open").forEach(b => b.classList.remove("open"));
+  document.querySelectorAll(".cat-header.open").forEach(h => { h.classList.remove("open"); h.querySelector(".cat-arrow").textContent = "▸"; });
+  render();
+}
+
+function switchVendorSummary() {
+  showVendorSummary = true;
+  showCategorySummary = false;
+  render();
+}
+
+function switchCategorySummary() {
+  showCategorySummary = true;
+  showVendorSummary = false;
+  expandedCatSummary = null;
+  render();
+}
+
+let expandedCatSummary = null;
+
+function toggleCatSummary(cat, header) {
+  expandedCatSummary = expandedCatSummary === cat ? null : cat;
+  render();
+}
+
+function toggleCat(cat, header) {
+  const body = header.nextElementSibling;
+  const isOpen = body.classList.contains("open");
+  // close all
+  document.querySelectorAll(".cat-body.open").forEach(b => b.classList.remove("open"));
+  document.querySelectorAll(".cat-header.open").forEach(h => { h.classList.remove("open"); h.querySelector(".cat-arrow").textContent = "▸"; });
+  if (!isOpen) {
+    body.classList.add("open");
+    header.classList.add("open");
+    header.querySelector(".cat-arrow").textContent = "▾";
+  }
+}
+
+function toggleShareMenu(e) {
+  e.stopPropagation();
+  document.getElementById("shareMenu").classList.toggle("open");
+}
+document.addEventListener("click", () => document.getElementById("shareMenu").classList.remove("open"));
+
+function showFeedback(msg) {
+  const el = document.getElementById("copyFeedback");
+  el.textContent = msg; el.style.display = "block";
+  setTimeout(() => { el.style.display = "none"; }, 2000);
+}
+
+function copyClipboard() {
+  let text = "Operational Cost Summary — January 2026\n" + "=".repeat(60) + "\n\n";
+  COST_CENTRES.forEach(cc => {
+    const total = grandTotal(cc);
+    text += `${cc} — ${fmt(total)}\n${"-".repeat(40)}\n`;
+    CATEGORIES.forEach(cat => {
+      const items = ALL_DATA[cc][cat] || [];
+      if (!items.length) return;
+      const t = items.reduce((s, v) => s + v.amount, 0);
+      text += `  ${cat}: ${fmt(t)}\n`;
+      items.forEach(v => { text += `    • ${v.vendor}: ${fmt(v.amount)}${v.note ? ` (${v.note})` : ""}\n`; });
+    });
+    text += "\n";
+  });
+  text += "=".repeat(60) + `\nCOMBINED TOTAL: ${fmt(combinedGrand())}`;
+  navigator.clipboard.writeText(text).then(() => showFeedback("Copied!"));
+  document.getElementById("shareMenu").classList.remove("open");
+}
+
+function exportCSV() {
+  let csv = "Entity,Category,Vendor,Amount,Note\n";
+  COST_CENTRES.forEach(cc => {
+    CATEGORIES.forEach(cat => {
+      (ALL_DATA[cc][cat] || []).forEach(v => {
+        csv += `"${cc}","${cat}","${v.vendor}",${v.amount.toFixed(2)},"${(v.note||"").replace(/"/g,'""')}"\n`;
+      });
+    });
+  });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  a.download = "cost_summary_jan2026.csv"; a.click();
+  document.getElementById("shareMenu").classList.remove("open");
+}
+
+function copyURL() {
+  navigator.clipboard.writeText(window.location.href).then(() => showFeedback("URL Copied!"));
+  document.getElementById("shareMenu").classList.remove("open");
+}
+
+function openNoteEditor(cc, cat, idx, e) {
+  e.stopPropagation();
+  const key = `${cc.replace(/\s/g,'_')}-${cat.replace(/\s/g,'_')}-${idx}`;
+  document.querySelectorAll('.note-editor').forEach(el => el.style.display = 'none');
+  const editor = document.getElementById(`neditor-${key}`);
+  if (editor) { editor.style.display = 'flex'; }
+  const input = document.getElementById(`ninput-${key}`);
+  if (input) { input.focus(); input.select(); }
+}
+
+function closeNoteEditor(cc, cat, idx) {
+  const key = `${cc.replace(/\s/g,'_')}-${cat.replace(/\s/g,'_')}-${idx}`;
+  const editor = document.getElementById(`neditor-${key}`);
+  if (editor) editor.style.display = 'none';
+}
+
+function saveNote(cc, cat, idx) {
+  const key = `${cc.replace(/\s/g,'_')}-${cat.replace(/\s/g,'_')}-${idx}`;
+  const input = document.getElementById(`ninput-${key}`);
+  if (!input) return;
+  ALL_DATA[cc][cat][idx].note = input.value.trim();
+  persistData();
+  const openHeader = document.querySelector('.cat-header.open');
+  const openCatName = openHeader ? openHeader.querySelector('.cat-name').textContent.trim() : null;
+  render();
+  if (openCatName) {
+    document.querySelectorAll('.cat-header').forEach(h => {
+      if (h.querySelector('.cat-name').textContent.trim() === openCatName) {
+        h.classList.add('open');
+        h.querySelector('.cat-arrow').textContent = '▾';
+        const body = h.nextElementSibling;
+        if (body) body.classList.add('open');
+      }
+    });
+  }
+}
+
+function saveVendorName(cc, cat, idx, val) {
+  const trimmed = val.trim();
+  if (!trimmed) return;
+  ALL_DATA[cc][cat][idx].vendor = trimmed;
+  persistData();
+  const key = `${cc.replace(/\s/g,'_')}-${cat.replace(/\s/g,'_')}-${idx}`;
+  const input = document.getElementById(`vname-${key}`);
+  if (input) input.value = trimmed;
+}
+
+function saveVendorAmount(cc, cat, idx, val) {
+  const num = parseFloat(val.replace(/[^0-9.-]/g, ''));
+  if (isNaN(num)) return;
+  ALL_DATA[cc][cat][idx].amount = num;
+  persistData();
+  // Capture open state BEFORE render wipes the DOM
+  const openHeader = document.querySelector('.cat-header.open');
+  const openCatName = openHeader ? openHeader.querySelector('.cat-name').textContent.trim() : null;
+  // Full re-render recalculates ALL totals: grand total, entity pills, category totals,
+  // combined totals, percentages, and category summary view
+  render();
+  // Re-open the category that was open before
+  if (openCatName) {
+    document.querySelectorAll('.cat-header').forEach(h => {
+      if (h.querySelector('.cat-name').textContent.trim() === openCatName) {
+        h.classList.add('open');
+        h.querySelector('.cat-arrow').textContent = '▾';
+        const body = h.nextElementSibling;
+        if (body) body.classList.add('open');
+      }
+    });
+  }
+  // Reformat the edited input back to dollar format
+  const key = `${cc.replace(/\s/g,'_')}-${cat.replace(/\s/g,'_')}-${idx}`;
+  const input = document.getElementById(`vamt-${key}`);
+  if (input) input.value = fmt(num);
+}
+
+function showAddVendor(key, cc, cat) {
+  // hide any other open new-row forms
+  document.querySelectorAll('.new-vendor-row').forEach(el => el.style.display = 'none');
+  const row = document.getElementById(`newrow-${key}`);
+  if (row) {
+    row.style.display = 'flex';
+    const nameInput = document.getElementById(`nv-name-${key}`);
+    if (nameInput) { nameInput.value = ''; nameInput.focus(); }
+    const amtInput = document.getElementById(`nv-amt-${key}`);
+    if (amtInput) amtInput.value = '';
+  }
+}
+
+function cancelAddVendor(key) {
+  const row = document.getElementById(`newrow-${key}`);
+  if (row) row.style.display = 'none';
+}
+
+function confirmAddVendor(cc, cat) {
+  const key = `${cc.replace(/\s/g,'_')}-${cat.replace(/\s/g,'_')}`;
+  const nameInput = document.getElementById(`nv-name-${key}`);
+  const amtInput = document.getElementById(`nv-amt-${key}`);
+  if (!nameInput || !amtInput) return;
+  const name = nameInput.value.trim();
+  const amt = parseFloat(amtInput.value);
+  if (!name) { nameInput.focus(); return; }
+  if (isNaN(amt) || amt < 0) { amtInput.focus(); return; }
+  if (!ALL_DATA[cc][cat]) ALL_DATA[cc][cat] = [];
+  ALL_DATA[cc][cat].push({ vendor: name, amount: amt, note: '' });
+  persistData();
+  // preserve open category
+  const openHeader = document.querySelector('.cat-header.open');
+  const openCatName = openHeader ? openHeader.querySelector('.cat-name').textContent : null;
+  render();
+  if (openCatName) {
+    document.querySelectorAll('.cat-header').forEach(h => {
+      if (h.querySelector('.cat-name').textContent === openCatName) {
+        h.classList.add('open');
+        h.nextElementSibling.classList.add('open');
+        h.querySelector('.cat-arrow').textContent = '▾';
+      }
+    });
+  }
+}
+
+// ── Persistence: rewrite HTML with live data and download ────────────────────
+
+// Save to localStorage as backup
+const STORAGE_KEY = 'cost_summary_jan2026';
+
+function persistData() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(ALL_DATA)); } catch(e) {}
+  scheduleSaveIndicator();
+}
+
+function loadSavedData() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (saved) {
+      Object.keys(saved).forEach(cc => {
+        if (ALL_DATA[cc]) {
+          Object.keys(saved[cc]).forEach(cat => {
+            ALL_DATA[cc][cat] = saved[cc][cat];
+          });
+        }
+      });
+      return true;
+    }
+  } catch(e) {}
+  return false;
+}
+
+// Show a small "Saved" badge after each edit
+let _saveTimer = null;
+function scheduleSaveIndicator() {
+  const el = document.getElementById('copyFeedback');
+  if (!el) return;
+  clearTimeout(_saveTimer);
+  el.textContent = '✓ Saved'; el.style.display = 'block';
+  _saveTimer = setTimeout(() => { el.style.display = 'none'; }, 1800);
+}
+
+// Serialize ALL_DATA to a clean JS object literal (no computed expressions)
+function serializeAllData() {
+  // Deep-clone with all amounts resolved to plain numbers
+  const clone = {};
+  COST_CENTRES.forEach(cc => {
+    clone[cc] = {};
+    CATEGORIES.forEach(cat => {
+      clone[cc][cat] = (ALL_DATA[cc][cat] || []).map(v => ({
+        vendor: v.vendor,
+        amount: v.amount,
+        note: v.note || ''
+      }));
+    });
+  });
+  return JSON.stringify(clone, null, 2);
+}
+
+// Download the current file with ALL_DATA baked in as plain values
+function saveAsFile() {
+  const src = document.documentElement.outerHTML;
+  // Replace the ALL_DATA block with a frozen snapshot
+  const marker_start = '/* ALLDATA_START */';
+  const marker_end = '/* ALLDATA_END */';
+  let updated;
+  if (src.includes(marker_start)) {
+    const re = new RegExp(marker_start + '[\\s\\S]*?' + marker_end);
+    updated = src.replace(re, marker_start + '\nconst ALL_DATA = ' + serializeAllData() + ';\n' + marker_end);
+  } else {
+    updated = src;
+  }
+  const blob = new Blob([updated], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'cost_summary_jan2026.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showFeedback('💾 File saved!');
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+// Version stamp — increment this any time the baked-in data changes so that
+// stale localStorage from a previous session is never loaded on top.
+const DATA_VERSION = Date.now(); // unique per file generation
+
+// Only restore localStorage if it was saved in THIS browser session
+// (i.e. sessionStorage tracks whether we already initialised this session)
+const sessionKey = 'cost_summary_session';
+const isNewSession = !sessionStorage.getItem(sessionKey);
+if (isNewSession) {
+  // Fresh load — clear any stale localStorage and start from baked-in data
+  try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+  sessionStorage.setItem(sessionKey, '1');
+  render();
+} else {
+  // Same browser session (e.g. page refresh mid-editing) — restore edits
+  const hadSavedData = loadSavedData();
+  render();
+  if (hadSavedData) {
+    const el = document.getElementById('copyFeedback');
+    if (el) { el.textContent = '✓ Edits restored'; el.style.display = 'block'; setTimeout(() => el.style.display = 'none', 2000); }
+  }
+}
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     PAYROLL BREAKDOWN SECTION
+═══════════════════════════════════════════════════════════════════════ -->
+<style>
+  .pr-section { max-width:1100px; margin:32px auto 0; padding:0 16px 48px; font-family:'Inter',sans-serif; }
+  .pr-title { font-size:20px; font-weight:700; color:#0f172a; margin-bottom:4px; }
+  .pr-sub { font-size:12px; color:#64748b; margin-bottom:18px; }
+  .pr-tabs { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
+  .pr-tab { padding:7px 16px; border-radius:20px; border:1.5px solid #cbd5e1; background:#fff;
+            font-size:12px; font-weight:600; color:#475569; cursor:pointer; transition:all .15s; }
+  .pr-tab.active { background:#0f172a; color:#fff; border-color:#0f172a; }
+  .pr-grid { display:grid; gap:0; border:1px solid #e2e8f0; border-radius:10px; overflow:hidden; }
+  .pr-hdr { display:grid; background:#f8fafc; border-bottom:2px solid #e2e8f0;
+            font-size:11px; font-weight:700; color:#64748b; letter-spacing:.04em;
+            padding:10px 16px; }
+  .pr-group-row { display:grid; padding:11px 16px; border-bottom:1px solid #f1f5f9;
+                  cursor:pointer; transition:background .1s; align-items:center; }
+  .pr-group-row:hover { background:#f8fafc; }
+  .pr-group-row.expanded { background:#f8fafc; }
+  .pr-entity-row { display:grid; padding:8px 16px 8px 32px; border-bottom:1px solid #f8fafc;
+                   background:#fff; align-items:center; }
+  .pr-emp-row { display:grid; padding:6px 16px 6px 52px; border-bottom:1px solid #fafafa;
+                background:#fff; align-items:center; font-size:11px; color:#64748b; }
+  .pr-sub-rows { overflow:hidden; transition:max-height .25s ease; }
+  .pr-name { font-size:13px; font-weight:600; color:#1e293b; }
+  .pr-entity-name { font-size:12px; font-weight:500; color:#334155; }
+  .pr-amt { font-size:13px; font-weight:700; color:#1e293b; text-align:right; }
+  .pr-entity-amt { font-size:12px; font-weight:600; color:#334155; text-align:right; }
+  .pr-emp-amt { font-size:11px; color:#64748b; text-align:right; }
+  .pr-hc { font-size:11px; color:#94a3b8; text-align:right; }
+  .pr-entity-hc { font-size:11px; color:#94a3b8; text-align:right; }
+  .pr-pct { font-size:11px; color:#94a3b8; text-align:right; }
+  .pr-chevron { font-size:10px; color:#94a3b8; transition:transform .2s; display:inline-block; }
+  .pr-chevron.open { transform:rotate(90deg); }
+  .pr-total-row { display:grid; padding:12px 16px; background:#0f172a; align-items:center; }
+  .pr-total-label { font-size:13px; font-weight:700; color:#fff; }
+  .pr-total-amt { font-size:13px; font-weight:700; color:#fff; text-align:right; }
+  .pr-total-hc { font-size:11px; color:#94a3b8; text-align:right; }
+  .pr-badge { display:inline-block; font-size:10px; padding:2px 7px; border-radius:10px;
+              font-weight:600; margin-left:6px; }
+  .pr-divider { height:1px; background:#e2e8f0; margin:24px 0; }
+  .pr-si-box { background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px;
+               padding:16px 20px; margin-top:20px; }
+  .pr-si-title { font-size:13px; font-weight:700; color:#0f172a; margin-bottom:12px; }
+  .pr-si-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+  .pr-si-card { background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:12px 14px; }
+  .pr-si-entity { font-size:11px; font-weight:700; color:#64748b; letter-spacing:.04em; margin-bottom:4px; }
+  .pr-si-rate { font-size:18px; font-weight:800; color:#0f172a; }
+  .pr-si-cost { font-size:12px; color:#64748b; margin-top:2px; }
+  .pr-si-breakdown { font-size:10px; color:#94a3b8; margin-top:4px; line-height:1.5; }
+</style>
+
+<div class="pr-section">
+  <div style="border-top:2px solid #e2e8f0; margin-bottom:28px;"></div>
+  <div class="pr-title">Payroll Breakdown — February 2026</div>
+  <div class="pr-sub">131 headcount · $1,295,987 total monthly payroll · Source: February 2026 Payroll Summary</div>
+
+  <div class="pr-tabs">
+    <button class="pr-tab active" onclick="prSwitch('dept')">By Department</button>
+    <button class="pr-tab" onclick="prSwitch('group')">By Group</button>
+  </div>
+
+  <div id="pr-view-dept"><!-- rendered by JS --></div>
+  <div id="pr-view-group" style="display:none"><!-- rendered by JS --></div>
+
+  <!-- Social Insurance box -->
+  <div class="pr-divider"></div>
+  <div class="pr-si-box">
+    <div class="pr-si-title">Estimated Employer Social Insurance Cost — $36,092/month</div>
+    <div class="pr-si-grid">
+      <div class="pr-si-card">
+        <div class="pr-si-entity">BLUE CORAL (US)</div>
+        <div class="pr-si-rate">7.65%</div>
+        <div class="pr-si-cost">$6,375/mo · 5 employees</div>
+        <div class="pr-si-breakdown">FICA: SS 6.2% + Medicare 1.45%</div>
+      </div>
+      <div class="pr-si-card">
+        <div class="pr-si-entity">TREK EU (CYPRUS)</div>
+        <div class="pr-si-rate">15.4%</div>
+        <div class="pr-si-cost">$10,816/mo · 13 employees</div>
+        <div class="pr-si-breakdown">SI 8.8% + GESY 2.9% + Cohesion 2% + Redundancy 1.2% + HRDA 0.5%</div>
+      </div>
+      <div class="pr-si-card">
+        <div class="pr-si-entity">TREK JAPAN</div>
+        <div class="pr-si-rate">15.6%</div>
+        <div class="pr-si-cost">$12,386/mo · 12 employees</div>
+        <div class="pr-si-breakdown">Pension 9.15% + Health 4.955% + Unemployment 0.9% + Child 0.36% + Accident 0.245%</div>
+      </div>
+      <div class="pr-si-card">
+        <div class="pr-si-entity">TREK LATVIA</div>
+        <div class="pr-si-rate">23.59%</div>
+        <div class="pr-si-cost">$7,998/mo · 5 employees</div>
+        <div class="pr-si-breakdown">VSAOI employer contribution</div>
+      </div>
+      <div class="pr-si-card">
+        <div class="pr-si-entity">TREK US</div>
+        <div class="pr-si-rate">7.65%</div>
+        <div class="pr-si-cost">$8,798/mo · 5 employees</div>
+        <div class="pr-si-breakdown">FICA: SS 6.2% + Medicare 1.45%</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Payroll Data ──────────────────────────────────────────────────────────────
+const PR_GRAND_TOTAL = 1295987;
+const PR_GRAND_HC    = 131;
+const PR_SI_TOTAL    = 50000;
+
+const PR_BY_DEPT = [
+  { dept:"Dev",           total:566126, hc:35, entities:[{name:"Blue Coral",total:370840,hc:22},{name:"Trek",total:195286,hc:13}] },
+  { dept:"Legal",         total:275613, hc:27, entities:[{name:"Blue Coral",total:12500,hc:1},{name:"Trek",total:263113,hc:26}] },
+  { dept:"Marketing & BD",total:135438, hc:18, entities:[{name:"Blue Coral",total:108604,hc:15},{name:"Trek",total:26834,hc:3}] },
+  { dept:"Finance",       total:67535,  hc:8,  entities:[{name:"Blue Coral",total:26500,hc:3},{name:"Trek",total:41035,hc:5}] },
+  { dept:"CS",            total:58965,  hc:17, entities:[{name:"Blue Coral",total:31500,hc:7},{name:"Trek",total:27465,hc:10}] },
+  { dept:"Operations",    total:60545,  hc:8,  entities:[{name:"Blue Coral",total:12500,hc:1},{name:"Trek",total:48045,hc:7}] },
+  { dept:"Risk",          total:44566,  hc:4,  entities:[{name:"Trek",total:44566,hc:4}] },
+  { dept:"Design",        total:30000,  hc:2,  entities:[{name:"Blue Coral",total:30000,hc:2}] },
+  { dept:"Community",     total:12700,  hc:10, entities:[{name:"Blue Coral",total:12700,hc:10}] },
+  { dept:"Product",       total:16667,  hc:1,  entities:[{name:"Trek",total:16667,hc:1}] },
+  { dept:"Audit",         total:16667,  hc:1,  entities:[{name:"Trek",total:16667,hc:1}] },
+];
+
+const PR_BY_GROUP = [
+  { group:"Blue Coral",   total:605144, hc:61, depts:[
+    {name:"Dev",          total:370840, hc:22},
+    {name:"Marketing & BD",total:108604,hc:15},
+    {name:"CS",           total:31500,  hc:7},
+    {name:"Finance",      total:26500,  hc:3},
+    {name:"Design",       total:30000,  hc:2},
+    {name:"Legal",        total:12500,  hc:1},
+    {name:"Operations",   total:12500,  hc:1},
+    {name:"Community",    total:12700,  hc:10},
+  ]},
+  { group:"Trek Global",  total:392313, hc:35, depts:[
+    {name:"Dev",          total:160336, hc:10},
+    {name:"Legal",        total:107288, hc:10},
+    {name:"Marketing & BD",total:26834, hc:3},
+    {name:"Finance",      total:33000,  hc:2},
+    {name:"Operations",   total:18315,  hc:2},
+    {name:"CS",           total:13206,  hc:6},
+    {name:"Risk",         total:16667,  hc:1},
+    {name:"Audit",        total:16667,  hc:1},
+  ]},
+  { group:"Trek US",      total:115001, hc:5, depts:[
+    {name:"Legal",        total:66667,  hc:2},
+    {name:"Product",      total:16667,  hc:1},
+    {name:"Finance",      total:15000,  hc:1},
+    {name:"Risk",         total:16667,  hc:1},
+  ]},
+  { group:"Trek Japan",   total:79390,  hc:12, depts:[
+    {name:"Legal",        total:33760,  hc:5},
+    {name:"Dev",          total:28710,  hc:2},
+    {name:"Operations",   total:9120,   hc:2},
+    {name:"Finance",      total:4200,   hc:2},
+    {name:"CS",           total:3600,   hc:1},
+  ]},
+  { group:"Trek EU",      total:70235,  hc:13, depts:[
+    {name:"Legal",        total:27734,  hc:5},
+    {name:"Operations",   total:20610,  hc:3},
+    {name:"CS",           total:10659,  hc:3},
+    {name:"Risk",         total:11232,  hc:2},
+  ]},
+  { group:"Trek Latvia",  total:33904,  hc:5, depts:[
+    {name:"Legal",        total:27664,  hc:4},
+    {name:"Dev",          total:6240,   hc:1},
+  ]},
+];
+
+const fmtP = n => "$" + Number(n).toLocaleString("en-US", {minimumFractionDigits:0,maximumFractionDigits:0});
+const pct  = (n,t) => (n/t*100).toFixed(1)+"%";
+
+let prExpanded = {};
+
+function prSwitch(view) {
+  document.querySelectorAll('.pr-tab').forEach((b,i) => b.classList.toggle('active', (i===0&&view==='dept')||(i===1&&view==='group')));
+  document.getElementById('pr-view-dept').style.display  = view==='dept'  ? '' : 'none';
+  document.getElementById('pr-view-group').style.display = view==='group' ? '' : 'none';
+}
+
+function prToggle(id) {
+  prExpanded[id] = !prExpanded[id];
+  const sub = document.getElementById('prsub-'+id);
+  const chev = document.getElementById('prchev-'+id);
+  const row  = document.getElementById('prrow-'+id);
+  if (sub) sub.style.maxHeight = prExpanded[id] ? sub.scrollHeight+'px' : '0';
+  if (chev) chev.classList.toggle('open', !!prExpanded[id]);
+  if (row)  row.classList.toggle('expanded', !!prExpanded[id]);
+}
+
+let prDeptSort = { col: 'total', dir: 'desc' };
+
+function prSortDept(col) {
+  if (prDeptSort.col === col) {
+    prDeptSort.dir = prDeptSort.dir === 'desc' ? 'asc' : 'desc';
+  } else {
+    prDeptSort.col = col;
+    prDeptSort.dir = 'desc';
+  }
+  prExpanded = {};
+  renderDept();
+}
+
+function renderDept() {
+  const cols = 'grid-template-columns:24px 1fr 90px 60px 80px 70px';
+  const s = prDeptSort;
+  const arr = [...PR_BY_DEPT];
+  arr.sort((a, b) => {
+    let av, bv;
+    if (s.col === 'total')  { av = a.total; bv = b.total; }
+    else if (s.col === 'hc') { av = a.hc;    bv = b.hc; }
+    else if (s.col === 'avg'){ av = a.hc > 0 ? a.total/a.hc : 0; bv = b.hc > 0 ? b.total/b.hc : 0; }
+    else if (s.col === 'pct'){ av = a.total; bv = b.total; }
+    return s.dir === 'desc' ? bv - av : av - bv;
+  });
+
+  const arrow = (col) => {
+    if (s.col !== col) return ' <span style="opacity:.3">↕</span>';
+    return s.dir === 'desc' ? ' ↓' : ' ↑';
+  };
+  const hdrBtn = (col, label, align='right') =>
+    `<span style="text-align:${align};cursor:pointer;user-select:none" onclick="prSortDept('${col}')">${label}${arrow(col)}</span>`;
+
+  let html = `<div class="pr-grid">
+    <div class="pr-hdr" style="${cols}">
+      <span></span>
+      ${hdrBtn('dept','Department','left')}
+      ${hdrBtn('total','Monthly')}
+      ${hdrBtn('hc','HC')}
+      ${hdrBtn('avg','Avg/HC')}
+      ${hdrBtn('pct','% Total')}
+    </div>`;
+
+  arr.forEach((d,i) => {
+    const id = 'dept-'+i;
+    const avg = d.hc > 0 ? Math.round(d.total / d.hc) : 0;
+    html += `
+    <div class="pr-group-row" id="prrow-${id}" style="${cols}" onclick="prToggle('${id}')">
+      <span><span class="pr-chevron" id="prchev-${id}">▶</span></span>
+      <span class="pr-name">${d.dept}</span>
+      <span class="pr-amt">${fmtP(d.total)}</span>
+      <span class="pr-hc">${d.hc}</span>
+      <span class="pr-pct">${fmtP(avg)}</span>
+      <span class="pr-pct">${pct(d.total,PR_GRAND_TOTAL)}</span>
+    </div>
+    <div class="pr-sub-rows" id="prsub-${id}" style="max-height:0">
+      ${d.entities.map(e => {
+        const eAvg = e.hc > 0 ? Math.round(e.total / e.hc) : 0;
+        return `
+        <div class="pr-entity-row" style="${cols}">
+          <span></span>
+          <span class="pr-entity-name">${e.name}</span>
+          <span class="pr-entity-amt">${fmtP(e.total)}</span>
+          <span class="pr-entity-hc">${e.hc}</span>
+          <span class="pr-pct">${fmtP(eAvg)}</span>
+          <span class="pr-pct">${pct(e.total,d.total)}</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+  });
+
+  html += `
+  <div class="pr-total-row" style="${cols}">
+    <span></span>
+    <span class="pr-total-label">Total Payroll</span>
+    <span class="pr-total-amt">${fmtP(PR_GRAND_TOTAL)}</span>
+    <span class="pr-total-hc">${PR_GRAND_HC}</span>
+    <span class="pr-total-hc">${fmtP(Math.round(PR_GRAND_TOTAL/PR_GRAND_HC))}</span>
+    <span></span>
+  </div>
+  <div class="pr-total-row" style="${cols};background:#1e293b">
+    <span></span>
+    <span class="pr-total-label" style="font-weight:400;color:#94a3b8">Est. Social Insurance & Health Benefits</span>
+    <span class="pr-total-amt" style="color:#94a3b8">${fmtP(PR_SI_TOTAL)}</span>
+    <span></span><span></span><span></span>
+  </div>
+  <div class="pr-total-row" style="${cols};background:#0f172a;border-top:2px solid #334155">
+    <span></span>
+    <span class="pr-total-label" style="font-size:14px">Grand Total</span>
+    <span class="pr-total-amt" style="font-size:14px">${fmtP(PR_GRAND_TOTAL + PR_SI_TOTAL)}</span>
+    <span></span><span></span><span></span>
+  </div></div>`;
+  document.getElementById('pr-view-dept').innerHTML = html;
+}
+
+let prGrpSort = { col: 'total', dir: 'desc' };
+
+function prSortGrp(col) {
+  if (prGrpSort.col === col) {
+    prGrpSort.dir = prGrpSort.dir === 'desc' ? 'asc' : 'desc';
+  } else {
+    prGrpSort.col = col;
+    prGrpSort.dir = 'desc';
+  }
+  prExpanded = {};
+  renderGroup();
+}
+
+function renderGroup() {
+  const cols = 'grid-template-columns:24px 1fr 90px 60px 80px 70px';
+  const s = prGrpSort;
+  const arr = [...PR_BY_GROUP];
+  arr.sort((a, b) => {
+    let av, bv;
+    if (s.col === 'total')      { av = a.total; bv = b.total; }
+    else if (s.col === 'hc')    { av = a.hc;    bv = b.hc; }
+    else if (s.col === 'avg')   { av = a.hc > 0 ? a.total/a.hc : 0; bv = b.hc > 0 ? b.total/b.hc : 0; }
+    else if (s.col === 'pct')   { av = a.total; bv = b.total; }
+    return s.dir === 'desc' ? bv - av : av - bv;
+  });
+
+  const arrow = (col) => s.col !== col ? ' <span style="opacity:.3">↕</span>' : (s.dir === 'desc' ? ' ↓' : ' ↑');
+  const hdrBtn = (col, label, align='right') =>
+    `<span style="text-align:${align};cursor:pointer;user-select:none" onclick="prSortGrp('${col}')">${label}${arrow(col)}</span>`;
+
+  let html = `<div class="pr-grid">
+    <div class="pr-hdr" style="${cols}">
+      <span></span>
+      ${hdrBtn('group','Group / Entity','left')}
+      ${hdrBtn('total','Monthly')}
+      ${hdrBtn('hc','HC')}
+      ${hdrBtn('avg','Avg/HC')}
+      ${hdrBtn('pct','% Total')}
+    </div>`;
+
+  arr.forEach((g, i) => {
+    const id = 'grp-'+i;
+    const avg = g.hc > 0 ? Math.round(g.total / g.hc) : 0;
+    html += `
+    <div class="pr-group-row" id="prrow-${id}" style="${cols}" onclick="prToggle('${id}')">
+      <span><span class="pr-chevron" id="prchev-${id}">▶</span></span>
+      <span class="pr-name">${g.group}</span>
+      <span class="pr-amt">${fmtP(g.total)}</span>
+      <span class="pr-hc">${g.hc}</span>
+      <span class="pr-pct">${fmtP(avg)}</span>
+      <span class="pr-pct">${pct(g.total,PR_GRAND_TOTAL)}</span>
+    </div>
+    <div class="pr-sub-rows" id="prsub-${id}" style="max-height:0">
+      ${g.depts.map(d => {
+        const dAvg = d.hc > 0 ? Math.round(d.total / d.hc) : 0;
+        return `
+        <div class="pr-entity-row" style="${cols}">
+          <span></span>
+          <span class="pr-entity-name">${d.name}</span>
+          <span class="pr-entity-amt">${fmtP(d.total)}</span>
+          <span class="pr-entity-hc">${d.hc}</span>
+          <span class="pr-pct">${fmtP(dAvg)}</span>
+          <span class="pr-pct">${pct(d.total,g.total)}</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+  });
+
+  html += `
+  <div class="pr-total-row" style="${cols}">
+    <span></span>
+    <span class="pr-total-label">Total Payroll</span>
+    <span class="pr-total-amt">${fmtP(PR_GRAND_TOTAL)}</span>
+    <span class="pr-total-hc">${PR_GRAND_HC}</span>
+    <span class="pr-total-hc">${fmtP(Math.round(PR_GRAND_TOTAL/PR_GRAND_HC))}</span>
+    <span></span>
+  </div>
+  <div class="pr-total-row" style="${cols};background:#1e293b">
+    <span></span>
+    <span class="pr-total-label" style="font-weight:400;color:#94a3b8">Est. Social Insurance & Health Benefits</span>
+    <span class="pr-total-amt" style="color:#94a3b8">${fmtP(PR_SI_TOTAL)}</span>
+    <span></span><span></span><span></span>
+  </div>
+  <div class="pr-total-row" style="${cols};background:#0f172a;border-top:2px solid #334155">
+    <span></span>
+    <span class="pr-total-label" style="font-size:14px">Grand Total</span>
+    <span class="pr-total-amt" style="font-size:14px">${fmtP(PR_GRAND_TOTAL + PR_SI_TOTAL)}</span>
+    <span></span><span></span><span></span>
+  </div></div>`;
+  document.getElementById('pr-view-group').innerHTML = html;
+}
+
+renderDept();
+renderGroup();
+</script>
+</body>
+</html>
