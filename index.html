@@ -143,14 +143,59 @@
   .footer-hint { font-size: 11px; color: #94a3b8; margin-top: 8px; text-align: right; }
 
   @media print {
-    .share-wrap, .tabs { display: none !important; }
+    .share-wrap, .tabs, .month-bar { display: none !important; }
     .cat-body { display: block !important; }
     .cat-header { background: #1e293b !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .cat-header .cat-arrow, .cat-header .cat-name, .cat-header .cat-total { color: #fff !important; }
   }
 </style>
+<style>
+  /* Month switcher bar */
+  .month-bar { display:flex; align-items:center; gap:6px; margin-bottom:16px; flex-wrap:wrap; }
+  .month-btn { padding:5px 13px; border-radius:20px; border:1.5px solid #cbd5e1; background:#fff; font-size:12px; font-weight:600; color:#475569; cursor:pointer; transition:all .15s; }
+  .month-btn.active { background:#0f172a; color:#fff; border-color:#0f172a; }
+  .month-btn:hover:not(.active) { border-color:#94a3b8; background:#f8fafc; }
+  .add-month-btn { padding:5px 13px; border-radius:20px; border:1.5px dashed #cbd5e1; background:#fff; font-size:12px; font-weight:600; color:#64748b; cursor:pointer; }
+  .add-month-btn:hover { border-color:#3b82f6; color:#3b82f6; background:#f0f9ff; }
+  /* New month modal */
+  .month-modal-overlay { display:none; position:fixed; inset:0; background:rgba(15,23,42,0.5); z-index:2000; align-items:center; justify-content:center; }
+  .month-modal-overlay.open { display:flex; }
+  .month-modal { background:#fff; border-radius:14px; padding:28px 28px 22px; width:380px; box-shadow:0 20px 60px rgba(0,0,0,0.25); }
+  .month-modal h3 { font-size:16px; font-weight:700; color:#0f172a; margin-bottom:4px; }
+  .month-modal p { font-size:12px; color:#64748b; margin-bottom:18px; }
+  .month-option { display:flex; flex-direction:column; gap:2px; padding:12px 14px; border:2px solid #e2e8f0; border-radius:8px; cursor:pointer; margin-bottom:8px; transition:border-color .15s, background .15s; }
+  .month-option:hover { border-color:#93c5fd; background:#f0f9ff; }
+  .month-option.selected { border-color:#3b82f6; background:#eff6ff; }
+  .month-option-title { font-size:13px; font-weight:600; color:#1e293b; }
+  .month-option-desc { font-size:11px; color:#64748b; }
+  .modal-actions { display:flex; gap:8px; margin-top:18px; justify-content:flex-end; }
+  .modal-btn-confirm { background:#3b82f6; color:#fff; border:none; border-radius:7px; padding:8px 20px; font-size:13px; font-weight:600; cursor:pointer; }
+  .modal-btn-confirm:hover { background:#2563eb; }
+  .modal-btn-cancel { background:#f1f5f9; color:#374151; border:none; border-radius:7px; padding:8px 14px; font-size:13px; cursor:pointer; }
+  .modal-btn-cancel:hover { background:#e2e8f0; }
+</style>
 </head>
 <body>
+<!-- New Month Modal -->
+<div class="month-modal-overlay" id="monthModalOverlay">
+  <div class="month-modal">
+    <h3 id="modalTitle">Add New Month</h3>
+    <p>Choose how to start this month's data:</p>
+    <div class="month-option selected" id="optCopy" onclick="selectModalOpt('copy')">
+      <span class="month-option-title">Copy from prior month</span>
+      <span class="month-option-desc" id="optCopyDesc">Same vendors &amp; amounts</span>
+    </div>
+    <div class="month-option" id="optBlank" onclick="selectModalOpt('blank')">
+      <span class="month-option-title">Start blank</span>
+      <span class="month-option-desc">Keep vendor names, reset all amounts to $0</span>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn-cancel" onclick="closeMonthModal()">Cancel</button>
+      <button class="modal-btn-confirm" onclick="confirmAddMonth()">Create Month</button>
+    </div>
+  </div>
+</div>
+
 <div id="pw-gate">
   <div id="pw-box">
     <h2>🔒 Backpack Finance</h2>
@@ -181,6 +226,9 @@
     <p class="subtitle">Click a category to expand. Hover ℹ to see notes. Click ℹ or "+ note" to edit.</p>
     <p class="jpy-note" id="jpyNote" style="display:none">JPY converted at USD/JPY 154.22 (Jan 31, 2026 month-end)</p>
   </div>
+
+  <!-- Month switcher -->
+  <div class="month-bar" id="monthBar"></div>
 
   <!-- Grand total -->
   <div class="grand-total">
@@ -215,7 +263,7 @@ const fmt = n => "$" + Number(n).toLocaleString("en-US", { minimumFractionDigits
 const J = jpy => Math.round(jpy / 154.22 * 100) / 100;
 
 /* ALLDATA_START */
-const ALL_DATA = {
+const INITIAL_DATA = {
   "Trek Global": {
     "Finance Expenses": [
       { vendor: "Bank & Wallet transaction fees", amount: (6772.60-1979.57)+321.97+453.86+10.30, note: "Bank charges, FX conversion, merchant & wallet fees" },
@@ -500,6 +548,35 @@ const ALL_DATA = {
 };
 
 /* ALLDATA_END */
+
+// ── Month Management ──────────────────────────────────────────────────────────
+const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function monthLabel(key) { const [y,m]=key.split("-"); return MONTH_NAMES[parseInt(m)-1]+" "+y; }
+function nextMonthKey(key) { const [y,m]=key.split("-").map(Number); const nm=m===12?1:m+1; const ny=m===12?y+1:y; return `${ny}-${String(nm).padStart(2,'0')}`; }
+
+function cloneMonthData(src, blankAmounts) {
+  const clone = {};
+  COST_CENTRES.forEach(cc => {
+    clone[cc] = {};
+    CATEGORIES.forEach(cat => {
+      clone[cc][cat] = (src[cc][cat]||[]).map(v => ({
+        vendor: v.vendor,
+        amount: blankAmounts ? 0 : v.amount,
+        note: blankAmounts ? '' : (v.note||''),
+        ...(v.tba && !blankAmounts ? {tba:true} : {})
+      }));
+    });
+  });
+  return clone;
+}
+
+/* MONTHSINIT_START */
+let MONTHS_DATA = { "2026-01": INITIAL_DATA };
+let MONTHS_LIST = ["2026-01"];
+let activeMonth = "2026-01";
+let ALL_DATA = MONTHS_DATA[activeMonth];
+/* MONTHSINIT_END */
+
 let activeCc = "Trek Global";
 let showCategorySummary = true;
 let showVendorSummary = false;
@@ -516,6 +593,10 @@ function combinedTotal(cat) {
 function combinedGrand() { return COST_CENTRES.reduce((s, cc) => s + grandTotal(cc), 0); }
 
 function render() {
+  // Update title and month bar
+  document.querySelector('h1').textContent = `Operational Cost Summary — ${monthLabel(activeMonth)}`;
+  renderMonthBar();
+
   // Grand total
   document.getElementById("grandTotal").textContent = fmt(combinedGrand());
   const pills = document.getElementById("entityPills");
@@ -754,7 +835,7 @@ function showFeedback(msg) {
 }
 
 function copyClipboard() {
-  let text = "Operational Cost Summary — January 2026\n" + "=".repeat(60) + "\n\n";
+  let text = `Operational Cost Summary — ${monthLabel(activeMonth)}\n` + "=".repeat(60) + "\n\n";
   COST_CENTRES.forEach(cc => {
     const total = grandTotal(cc);
     text += `${cc} — ${fmt(total)}\n${"-".repeat(40)}\n`;
@@ -783,7 +864,7 @@ function exportCSV() {
   });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-  a.download = "cost_summary_jan2026.csv"; a.click();
+  a.download = `cost_summary_${activeMonth}.csv`; a.click();
   document.getElementById("shareMenu").classList.remove("open");
 }
 
@@ -912,27 +993,25 @@ function confirmAddVendor(cc, cat) {
   }
 }
 
-// ── Persistence: rewrite HTML with live data and download ────────────────────
-
-// Save to localStorage as backup
-const STORAGE_KEY = 'cost_summary_jan2026';
+// ── Persistence ───────────────────────────────────────────────────────────────
+const STORAGE_KEY = 'cost_summary_v2';
 
 function persistData() {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(ALL_DATA)); } catch(e) {}
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ months: MONTHS_LIST, activeMonth, data: MONTHS_DATA }));
+  } catch(e) {}
   scheduleSaveIndicator();
 }
 
 function loadSavedData() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (saved) {
-      Object.keys(saved).forEach(cc => {
-        if (ALL_DATA[cc]) {
-          Object.keys(saved[cc]).forEach(cat => {
-            ALL_DATA[cc][cat] = saved[cc][cat];
-          });
-        }
-      });
+    if (saved && saved.data) {
+      MONTHS_LIST = saved.months || ["2026-01"];
+      activeMonth = saved.activeMonth || "2026-01";
+      MONTHS_DATA = saved.data;
+      if (!MONTHS_DATA["2026-01"]) MONTHS_DATA["2026-01"] = INITIAL_DATA;
+      ALL_DATA = MONTHS_DATA[activeMonth];
       return true;
     }
   } catch(e) {}
@@ -949,67 +1028,110 @@ function scheduleSaveIndicator() {
   _saveTimer = setTimeout(() => { el.style.display = 'none'; }, 1800);
 }
 
-// Serialize ALL_DATA to a clean JS object literal (no computed expressions)
+// Serialize all months data to plain values (no computed expressions)
 function serializeAllData() {
-  // Deep-clone with all amounts resolved to plain numbers
-  const clone = {};
-  COST_CENTRES.forEach(cc => {
-    clone[cc] = {};
-    CATEGORIES.forEach(cat => {
-      clone[cc][cat] = (ALL_DATA[cc][cat] || []).map(v => ({
-        vendor: v.vendor,
-        amount: v.amount,
-        note: v.note || ''
-      }));
+  const allMonths = {};
+  MONTHS_LIST.forEach(key => {
+    allMonths[key] = {};
+    COST_CENTRES.forEach(cc => {
+      allMonths[key][cc] = {};
+      CATEGORIES.forEach(cat => {
+        allMonths[key][cc][cat] = (MONTHS_DATA[key][cc][cat] || []).map(v => ({
+          vendor: v.vendor, amount: v.amount, note: v.note || '',
+          ...(v.tba ? {tba:true} : {})
+        }));
+      });
     });
   });
-  return JSON.stringify(clone, null, 2);
+  return allMonths;
 }
 
-// Download the current file with ALL_DATA baked in as plain values
+// Download the current file with all months baked in
 function saveAsFile() {
   const src = document.documentElement.outerHTML;
-  // Replace the ALL_DATA block with a frozen snapshot
-  const marker_start = '/* ALLDATA_START */';
-  const marker_end = '/* ALLDATA_END */';
-  let updated;
-  if (src.includes(marker_start)) {
-    const re = new RegExp(marker_start + '[\\s\\S]*?' + marker_end);
-    updated = src.replace(re, marker_start + '\nconst ALL_DATA = ' + serializeAllData() + ';\n' + marker_end);
-  } else {
-    updated = src;
+  const allData = serializeAllData();
+  // Bake INITIAL_DATA (Jan 2026)
+  let updated = src;
+  const adStart = '/* ALLDATA_START */', adEnd = '/* ALLDATA_END */';
+  if (src.includes(adStart)) {
+    const re = new RegExp(adStart + '[\\s\\S]*?' + adEnd);
+    updated = updated.replace(re, adStart + '\nconst INITIAL_DATA = ' + JSON.stringify(allData["2026-01"]||INITIAL_DATA, null, 2) + ';\n' + adEnd);
+  }
+  // Bake all months init
+  const miStart = '/* MONTHSINIT_START */', miEnd = '/* MONTHSINIT_END */';
+  if (updated.includes(miStart)) {
+    const re2 = new RegExp(miStart + '[\\s\\S]*?' + miEnd);
+    const monthsInit = `/* MONTHSINIT_START */\nlet MONTHS_DATA = ${JSON.stringify(allData, null, 2)};\nlet MONTHS_LIST = ${JSON.stringify(MONTHS_LIST)};\nlet activeMonth = "${activeMonth}";\nlet ALL_DATA = MONTHS_DATA[activeMonth];\n/* MONTHSINIT_END */`;
+    updated = updated.replace(re2, monthsInit);
   }
   const blob = new Blob([updated], { type: 'text/html' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'cost_summary_jan2026.html';
+  a.download = `cost_summary_${activeMonth}.html`;
   a.click();
   URL.revokeObjectURL(a.href);
   showFeedback('💾 File saved!');
 }
 
-// ── Init ─────────────────────────────────────────────────────────────────────
-// Version stamp — increment this any time the baked-in data changes so that
-// stale localStorage from a previous session is never loaded on top.
-const DATA_VERSION = Date.now(); // unique per file generation
+// ── Month bar & modal ─────────────────────────────────────────────────────────
+function renderMonthBar() {
+  const bar = document.getElementById('monthBar');
+  if (!bar) return;
+  bar.innerHTML = MONTHS_LIST.map(key =>
+    `<button class="month-btn${key===activeMonth?' active':''}" onclick="switchMonth('${key}')">${monthLabel(key)}</button>`
+  ).join('') + `<button class="add-month-btn" onclick="openMonthModal()">＋ New Month</button>`;
+}
 
-// Only restore localStorage if it was saved in THIS browser session
-// (i.e. sessionStorage tracks whether we already initialised this session)
-const sessionKey = 'cost_summary_session';
-const isNewSession = !sessionStorage.getItem(sessionKey);
-if (isNewSession) {
-  // Fresh load — clear any stale localStorage and start from baked-in data
-  try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
-  sessionStorage.setItem(sessionKey, '1');
+function switchMonth(key) {
+  activeMonth = key;
+  ALL_DATA = MONTHS_DATA[key];
+  activeCc = "Trek Global";
+  showCategorySummary = true;
+  showVendorSummary = false;
+  expandedCatSummary = null;
+  persistData();
   render();
-} else {
-  // Same browser session (e.g. page refresh mid-editing) — restore edits
-  const hadSavedData = loadSavedData();
-  render();
-  if (hadSavedData) {
-    const el = document.getElementById('copyFeedback');
-    if (el) { el.textContent = '✓ Edits restored'; el.style.display = 'block'; setTimeout(() => el.style.display = 'none', 2000); }
+}
+
+let _modalOpt = 'copy';
+
+function openMonthModal() {
+  const nextKey = nextMonthKey(MONTHS_LIST[MONTHS_LIST.length - 1]);
+  document.getElementById('modalTitle').textContent = `Add ${monthLabel(nextKey)}`;
+  document.getElementById('optCopyDesc').textContent = `Same vendors & amounts as ${monthLabel(MONTHS_LIST[MONTHS_LIST.length-1])}`;
+  _modalOpt = 'copy';
+  document.getElementById('optCopy').classList.add('selected');
+  document.getElementById('optBlank').classList.remove('selected');
+  document.getElementById('monthModalOverlay').classList.add('open');
+}
+
+function closeMonthModal() {
+  document.getElementById('monthModalOverlay').classList.remove('open');
+}
+
+function selectModalOpt(opt) {
+  _modalOpt = opt;
+  document.getElementById('optCopy').classList.toggle('selected', opt==='copy');
+  document.getElementById('optBlank').classList.toggle('selected', opt==='blank');
+}
+
+function confirmAddMonth() {
+  const srcKey = MONTHS_LIST[MONTHS_LIST.length - 1];
+  const newKey = nextMonthKey(srcKey);
+  if (!MONTHS_DATA[newKey]) {
+    MONTHS_DATA[newKey] = cloneMonthData(MONTHS_DATA[srcKey], _modalOpt === 'blank');
+    MONTHS_LIST.push(newKey);
   }
+  closeMonthModal();
+  switchMonth(newKey);
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+const hadSavedData = loadSavedData();
+render();
+if (hadSavedData) {
+  const el = document.getElementById('copyFeedback');
+  if (el) { el.textContent = '✓ Edits restored'; el.style.display = 'block'; setTimeout(() => el.style.display = 'none', 2000); }
 }
 </script>
 
