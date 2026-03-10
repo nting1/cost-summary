@@ -157,6 +157,12 @@
   .month-btn:hover:not(.active) { border-color:#94a3b8; background:#f8fafc; }
   .add-month-btn { padding:5px 13px; border-radius:20px; border:1.5px dashed #cbd5e1; background:#fff; font-size:12px; font-weight:600; color:#64748b; cursor:pointer; }
   .add-month-btn:hover { border-color:#3b82f6; color:#3b82f6; background:#f0f9ff; }
+  .month-btn { position:relative; }
+  .month-del { display:none; position:absolute; top:-5px; right:-5px; width:16px; height:16px; border-radius:50%; background:#ef4444; color:#fff; font-size:10px; line-height:16px; text-align:center; cursor:pointer; z-index:10; }
+  .month-btn:hover .month-del { display:block; }
+  /* Delete vendor row */
+  .del-row-btn { background:none; border:none; color:#cbd5e1; font-size:15px; cursor:pointer; padding:0 0 0 6px; line-height:1; flex-shrink:0; }
+  .del-row-btn:hover { color:#ef4444; }
   /* New month modal */
   .month-modal-overlay { display:none; position:fixed; inset:0; background:rgba(15,23,42,0.5); z-index:2000; align-items:center; justify-content:center; }
   .month-modal-overlay.open { display:flex; }
@@ -742,6 +748,7 @@ function render() {
                 onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){this.value=fmt(ALL_DATA['${ccE}']['${catE}'][${i}].amount);this.blur();}"
               />`}
             </span>
+            <button class="del-row-btn" onclick="deleteVendor('${ccE}','${catE}',${i})" title="Delete row">×</button>
           </div>
           <div class="note-editor" id="neditor-${key}" style="display:none">
             <input class="note-input" id="ninput-${key}" value="${(v.note||'').replace(/"/g,'&quot;')}" placeholder="Enter note..." />
@@ -1073,13 +1080,51 @@ function saveAsFile() {
   showFeedback('💾 File saved!');
 }
 
+function deleteVendor(cc, cat, idx) {
+  if (!confirm(`Delete "${ALL_DATA[cc][cat][idx].vendor}"?`)) return;
+  ALL_DATA[cc][cat].splice(idx, 1);
+  persistData();
+  const openHeader = document.querySelector('.cat-header.open');
+  const openCatName = openHeader ? openHeader.querySelector('.cat-name').textContent.trim() : null;
+  render();
+  if (openCatName) {
+    document.querySelectorAll('.cat-header').forEach(h => {
+      if (h.querySelector('.cat-name').textContent.trim() === openCatName) {
+        h.classList.add('open'); h.querySelector('.cat-arrow').textContent = '▾';
+        const body = h.nextElementSibling; if (body) body.classList.add('open');
+      }
+    });
+  }
+}
+
 // ── Month bar & modal ─────────────────────────────────────────────────────────
 function renderMonthBar() {
   const bar = document.getElementById('monthBar');
   if (!bar) return;
-  bar.innerHTML = MONTHS_LIST.map(key =>
-    `<button class="month-btn${key===activeMonth?' active':''}" onclick="switchMonth('${key}')">${monthLabel(key)}</button>`
-  ).join('') + `<button class="add-month-btn" onclick="openMonthModal()">＋ New Month</button>`;
+  bar.innerHTML = MONTHS_LIST.map(key => {
+    const canDelete = MONTHS_LIST.length > 1;
+    const delBtn = canDelete ? `<span class="month-del" onclick="deleteMonth('${key}',event)" title="Delete month">×</span>` : '';
+    return `<button class="month-btn${key===activeMonth?' active':''}" onclick="switchMonth('${key}')" style="position:relative;padding-right:${canDelete?'22px':'13px'}">${monthLabel(key)}${delBtn}</button>`;
+  }).join('') + `<button class="add-month-btn" onclick="openMonthModal()">＋ New Month</button>`;
+}
+
+function deleteMonth(key, e) {
+  e.stopPropagation();
+  if (MONTHS_LIST.length <= 1) return;
+  if (!confirm(`Delete ${monthLabel(key)}? This cannot be undone.`)) return;
+  const idx = MONTHS_LIST.indexOf(key);
+  MONTHS_LIST.splice(idx, 1);
+  delete MONTHS_DATA[key];
+  // switch to nearest remaining month
+  const newActive = MONTHS_LIST[Math.min(idx, MONTHS_LIST.length-1)];
+  activeMonth = newActive;
+  ALL_DATA = MONTHS_DATA[newActive];
+  activeCc = "Trek Global";
+  showCategorySummary = true;
+  showVendorSummary = false;
+  expandedCatSummary = null;
+  persistData();
+  render();
 }
 
 function switchMonth(key) {
